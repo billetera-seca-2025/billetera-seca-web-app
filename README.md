@@ -83,7 +83,7 @@ npm run dev
 1. **Run Cypress**:
 
 ```bash
-npx cypress open
+npm run cypress:open
 ```
 
 2. **Purpose**:
@@ -101,7 +101,7 @@ Tests are located in the `cypress` folder.
 1. **Run Jest Tests**:
 
 ```bash
-npx jest
+npm run test
 ```
 
 2. **Purpose**:

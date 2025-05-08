@@ -31,7 +31,7 @@ A modern, secure, and easy-to-use electronic wallet for all your daily transacti
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/josequiroga96/billetera-seca-front.git
+git clone https://github.com/billetera-seca-2025/billetera-seca-web-app.git
 cd billetera-seca-front
 ```
 

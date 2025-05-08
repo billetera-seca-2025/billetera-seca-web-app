@@ -32,7 +32,7 @@ A modern, secure, and easy-to-use electronic wallet for all your daily transacti
 
 ```bash
 git clone https://github.com/billetera-seca-2025/billetera-seca-web-app.git
-cd billetera-seca-front
+cd billetera-seca-web-app
 ```
 
 2. **Install dependencies**

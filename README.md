@@ -80,6 +80,10 @@ npm run dev
 
 ### Cypress - End-to-End Testing
 
+**Test Requirements**:
+
+Make sure the web application is running before starting Cypress.
+
 1. **Run Cypress**:
 
 ```bash

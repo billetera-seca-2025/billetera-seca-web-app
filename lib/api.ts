@@ -1,7 +1,13 @@
-// Simulación de API para la billetera electrónica
+// Import the real API client for authentication
+import { loginUser as realLoginUser, registerUser as realRegisterUser } from "./api-client"
 import type { Transaction, User } from "@/types/wallet"
 
-// Datos simulados
+// Helper function to generate unique IDs
+const generateId = (): string => {
+    return Math.random().toString(36).substring(2, 15)
+}
+
+// Mock data for features not yet implemented in the backend
 const users: User[] = [
   {
     id: "1",
@@ -63,83 +69,22 @@ const transactions: Transaction[] = [
   },
 ]
 
-// Función para generar IDs únicos
-const generateId = (): string => {
-  return Math.random().toString(36).substring(2, 15)
-}
+// Helper function to simulate network delay
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// Función para simular delay de red
-const delay = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+// Use real API client for authentication
+export { realLoginUser as loginUser, realRegisterUser as registerUser }
 
-// Autenticación
-export const registerUser = async (email: string, password: string): Promise<{ user: User; token: string }> => {
-  await delay(1000) // Simular delay de red
-
-  // Verificar si el usuario ya existe
-  const existingUser = users.find((user) => user.email === email)
-  if (existingUser) {
-    throw new Error("El usuario ya existe")
-  }
-
-  // Crear nuevo usuario
-  const newUser: User = {
-    id: generateId(),
-    email,
-    password,
-    balance: 0,
-  }
-
-  users.push(newUser)
-
-  // Simular token JWT
-  const token = `token_${newUser.id}_${Date.now()}`
-
-  return {
-    user: { ...newUser, password: undefined },
-    token,
-  }
-}
-
-export const loginUser = async (email: string, password: string): Promise<{ user: User; token: string }> => {
-  await delay(1000) // Simular delay de red
-
-  // Buscar usuario
-  const user = users.find((user) => user.email === email && user.password === password)
-  if (!user) {
-    throw new Error("Credenciales incorrectas")
-  }
-
-  // Simular token JWT
-  const token = `token_${user.id}_${Date.now()}`
-
-  return {
-    user: { ...user, password: undefined },
-    token,
-  }
-}
-
-// Operaciones de billetera
+// Mock functions for features not yet implemented in the backend
 export const getUserBalance = async (): Promise<{ balance: number }> => {
-  await delay(500) // Simular delay de red
-
-  // En una aplicación real, obtendríamos el ID del usuario del token
-  // Aquí simplemente usamos el primer usuario para simular
+  await delay(500)
   const user = users[0]
-
-  return {
-    balance: user.balance,
-  }
+  return { balance: user.balance }
 }
 
 export const getRecentTransactions = async (): Promise<Transaction[]> => {
-  await delay(800) // Simular delay de red
-
-  // En una aplicación real, filtraríamos por el ID del usuario del token
-  // Aquí simplemente usamos el primer usuario para simular
+  await delay(800)
   const userId = "1"
-
   return transactions
     .filter((transaction) => transaction.userId === userId)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -147,12 +92,8 @@ export const getRecentTransactions = async (): Promise<Transaction[]> => {
 }
 
 export const getAllTransactions = async (): Promise<Transaction[]> => {
-  await delay(1000) // Simular delay de red
-
-  // En una aplicación real, filtraríamos por el ID del usuario del token
-  // Aquí simplemente usamos el primer usuario para simular
+  await delay(1000)
   const userId = "1"
-
   return transactions
     .filter((transaction) => transaction.userId === userId)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

@@ -26,9 +26,9 @@ export default function Transfer() {
     })
 
     useEffect(() => {
-        // Check if user is logged in
-        const token = localStorage.getItem("token")
-        if (!token) {
+        // Check if user is logged in from cookies
+        const userCookie = document.cookie.split('; ').find(row => row.startsWith('user='))
+        if (!userCookie) {
             router.push(URLS.login)
             return
         }
@@ -44,7 +44,7 @@ export default function Transfer() {
             }
         }
 
-        fetchBalance().then()
+        fetchBalance()
     }, [router])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

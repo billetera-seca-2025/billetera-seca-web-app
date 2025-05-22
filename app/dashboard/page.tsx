@@ -21,8 +21,9 @@ export default function Dashboard() {
     const [isVisible, setIsVisible] = useState(true)
 
     useEffect(() => {
-        const token = localStorage.getItem("token")
-        if (!token) {
+        // Check if user is logged in from cookies
+        const userCookie = document.cookie.split('; ').find(row => row.startsWith('user='))
+        if (!userCookie) {
             router.push(URLS.login)
             return
         }
@@ -41,7 +42,7 @@ export default function Dashboard() {
             }
         }
 
-        fetchData().then()
+        fetchData()
     }, [router])
 
     if (isLoading) {

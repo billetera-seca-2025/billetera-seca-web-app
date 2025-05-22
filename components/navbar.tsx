@@ -26,8 +26,10 @@ export function Navbar() {
     }, [pathname])
 
     const handleLogout = () => {
+        // Remove from both localStorage and cookies
         localStorage.removeItem("user")
-        localStorage.removeItem("token")
+        localStorage.removeItem("credentials")
+        document.cookie = "user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
         setIsLoggedIn(false)
         window.location.href = URLS.home
     }

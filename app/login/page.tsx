@@ -33,19 +33,29 @@ export default function Login() {
         try {
             const response = await loginUser(formData.email, formData.password)
 
-            // Store user data in localStorage
-            localStorage.setItem("user", JSON.stringify(response.user))
-            localStorage.setItem("token", response.token)
+            // Store user data in both localStorage and cookies
+            const userData = JSON.stringify(response.user)
+            localStorage.setItem("user", userData)
+            // Set cookie with expiration of 7 days
+            const expirationDate = new Date()
+            expirationDate.setDate(expirationDate.getDate() + 7)
+            document.cookie = `user=${userData}; path=/; expires=${expirationDate.toUTCString()}`
+            
+            // Store credentials for future API calls (only in localStorage)
+            localStorage.setItem("credentials", JSON.stringify({
+                email: formData.email,
+                password: formData.password
+            }))
 
             toast(TEXT.auth.login.success, {
-                description: TEXT.auth.login.successMessage,
+                description: response.message,
             })
 
             // Redirect to dashboard
             router.push(URLS.dashboard)
         } catch (error) {
             toast.error(TEXT.common.errorOccurred, {
-                description: TEXT.auth.login.errorCredentials,
+                description: error instanceof Error ? error.message : TEXT.auth.login.errorCredentials,
             })
         } finally {
             setIsLoading(false)

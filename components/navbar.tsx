@@ -9,6 +9,7 @@ import {Avatar, AvatarFallback} from "@/components/ui/avatar"
 import {useEffect, useState} from "react"
 import {cn} from "@/lib/utils"
 import {TEXT, URLS} from "@/lib/constants"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navbar() {
     const pathname = usePathname()
@@ -56,7 +57,7 @@ export function Navbar() {
                     </Link>
                 </div>
 
-                <nav className="hidden md:flex gap-6">
+                <nav className="hidden md:flex items-center gap-6">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
@@ -69,6 +70,7 @@ export function Navbar() {
                             {item.name}
                         </Link>
                     ))}
+                    <ThemeToggle />
                 </nav>
 
                 <div className="flex items-center gap-4">
@@ -104,21 +106,26 @@ export function Navbar() {
                                 <span className="sr-only">Toggle menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="right">
-                            <div className="flex flex-col gap-6 py-6">
-                                {navItems.map((item) => (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={cn(
-                                            "text-sm font-medium transition-colors hover:text-primary",
-                                            pathname === item.href ? "text-primary" : "text-muted-foreground",
-                                        )}
-                                    >
-                                        {item.name}
-                                    </Link>
-                                ))}
-
+                        <SheetContent>
+                            <div className="flex flex-col gap-4">
+                                <nav className="flex flex-col gap-4">
+                                    {navItems.map((item) => (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            className={cn(
+                                                "text-sm font-medium transition-colors hover:text-primary",
+                                                pathname === item.href ? "text-primary" : "text-muted-foreground",
+                                            )}
+                                        >
+                                            {item.name}
+                                        </Link>
+                                    ))}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">Tema</span>
+                                        <ThemeToggle />
+                                    </div>
+                                </nav>
                                 {isLoggedIn ? (
                                     <>
                                         <div className="flex items-center gap-2 pt-4">

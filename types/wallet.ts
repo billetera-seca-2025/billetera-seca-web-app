@@ -10,8 +10,11 @@ export interface Transaction {
   userId: string
   type: "income" | "expense" | "transfer"
   amount: number
-  description: string
+  description?: string
   recipient?: string
   sender?: string
   date: string
+  createdAt?: string
+  relatedWalletId?: string
+  relatedBankName?: string
 }

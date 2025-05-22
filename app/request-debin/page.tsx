@@ -18,6 +18,7 @@ export default function RequestDebin() {
     const [balance, setBalance] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const [isRequesting, setIsRequesting] = useState(false)
+    const [userEmail, setUserEmail] = useState<string>("")
     const [debinData, setDebinData] = useState({
         bankName: "",
         accountNumber: "",
@@ -28,6 +29,18 @@ export default function RequestDebin() {
         // Check if user is logged in from cookies
         const userCookie = document.cookie.split('; ').find(row => row.startsWith('user='))
         if (!userCookie) {
+            router.push(URLS.login)
+            return
+        }
+
+        try {
+            const userData = JSON.parse(decodeURIComponent(userCookie.split('=')[1]))
+            if (!userData.email) {
+                throw new Error("User email not found")
+            }
+            setUserEmail(userData.email)
+        } catch (error) {
+            console.error("Error parsing user data:", error)
             router.push(URLS.login)
             return
         }
@@ -54,6 +67,14 @@ export default function RequestDebin() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
+        if (!userEmail) {
+            toast.error(TEXT.common.errorOccurred, {
+                description: "No se pudo obtener el email del usuario. Por favor, vuelve a iniciar sesión.",
+            })
+            router.push(URLS.login)
+            return
+        }
+
         const amount = Number.parseFloat(debinData.amount)
 
         if (isNaN(amount) || amount <= 0) {
@@ -68,8 +89,8 @@ export default function RequestDebin() {
         try {
             await requestDebin(debinData.bankName, debinData.accountNumber, amount)
 
-            toast(TEXT.requestDebin.success, {
-                description: TEXT.requestDebin.successMessage.replace("{amount}", formatCurrency(amount)),
+            toast.success(TEXT.requestDebin.success, {
+                description: `Se solicitó un DEBIN por ${formatCurrency(amount)} al banco ${debinData.bankName}.`,
             })
 
             // Reset form
@@ -83,9 +104,24 @@ export default function RequestDebin() {
             const balanceData = await getUserBalance()
             setBalance(balanceData.balance)
         } catch (error) {
-            toast.error(TEXT.common.errorOccurred, {
-                description: TEXT.requestDebin.error,
-            })
+            // Log detallado del error
+            console.error('Error completo:', error)
+            if (error instanceof Error) {
+                console.error('Error message:', error.message)
+                console.error('Error stack:', error.stack)
+            }
+            
+            // Asegurarnos de que el mensaje de error sea una cadena
+            const errorMessage = error instanceof Error 
+                ? error.message 
+                : typeof error === 'string' 
+                    ? error 
+                    : TEXT.requestDebin.error
+            
+            console.log('Mensaje de error a mostrar:', errorMessage)
+            
+            // Mostrar el mensaje de error en el toast
+            toast.error(errorMessage)
         } finally {
             setIsRequesting(false)
         }

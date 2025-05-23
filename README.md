@@ -84,17 +84,23 @@ npm run dev
 
 Make sure the web application is running before starting Cypress.
 
+1. **Install Cypress**:
+
+```bash
+cypress install
+```
+
 1. **Run Cypress**:
 
 ```bash
 npm run cypress:open
 ```
 
-2. **Purpose**:
+3**Purpose**:
 
 Cypress is used for running automated end-to-end tests to ensure the application works as expected from the user perspective.
 
-3. **Test Location**:
+4**Test Location**:
 
 Tests are located in the `cypress` folder.
 

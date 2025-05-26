@@ -9,9 +9,66 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
 import {getRecentTransactions, getUserBalance} from "@/lib/api"
-import {formatCurrency} from "@/lib/utils"
+import {formatCurrency, formatDate} from "@/lib/utils"
 import type {Transaction} from "@/types/wallet"
 import {TEXT, URLS} from "@/lib/constants"
+
+const getTransactionStyle = (type: string) => {
+    switch (type.toUpperCase()) {
+        case 'INCOME':
+            return {
+                bgColor: 'bg-green-100',
+                textColor: 'text-green-600',
+                icon: <ArrowDownIcon className="h-5 w-5 text-green-600"/>,
+                sign: '+'
+            }
+        case 'OUTCOME':
+            return {
+                bgColor: 'bg-red-100',
+                textColor: 'text-red-600',
+                icon: <ArrowUpIcon className="h-5 w-5 text-red-600"/>,
+                sign: '-'
+            }
+        default:
+            return {
+                bgColor: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                icon: <ArrowUpIcon className="h-5 w-5 text-blue-600"/>,
+                sign: '-'
+            }
+    }
+}
+
+const getTransactionKey = (transaction: Transaction, index: number) => {
+    // Si el ID es undefined, usamos el índice como parte de la key
+    const id = transaction.id || `index-${index}`
+    return `${id}-${transaction.date}-${transaction.type}-${index}`
+}
+
+const getTransactionDescription = (transaction: Transaction) => {
+    const amount = formatCurrency(transaction.amount)
+    
+    // Si hay una descripción personalizada, usarla
+    if (transaction.description) {
+        return transaction.description
+    }
+    
+    // Determinar la descripción basada en el tipo de transacción
+    switch (transaction.type.toUpperCase()) {
+        case 'INCOME':
+            if (transaction.sender) {
+                return `Ingreso de ${amount} de ${transaction.sender}`
+            }
+            return `Ingreso de ${amount}`
+        case 'OUTCOME':
+            if (transaction.recipient) {
+                return `Gasto de ${amount} a ${transaction.recipient}`
+            }
+            return `Gasto de ${amount}`
+        default:
+            return `${transaction.type} de ${amount}`
+    }
+}
 
 export default function Dashboard() {
     const router = useRouter()
@@ -19,29 +76,45 @@ export default function Dashboard() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isVisible, setIsVisible] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        const token = localStorage.getItem("token")
-        if (!token) {
+        // Check if user is logged in from cookies
+        const userCookie = document.cookie.split('; ').find(row => row.startsWith('user='))
+        if (!userCookie) {
             router.push(URLS.login)
             return
         }
 
         const fetchData = async () => {
             try {
-                const balanceData = await getUserBalance()
+                setError(null)
+                const [balanceData, transactionsData] = await Promise.all([
+                    getUserBalance(),
+                    getRecentTransactions()
+                ])
+                
+                console.log('Transactions received in Dashboard:', transactionsData.map(t => ({
+                    id: t.id,
+                    type: t.type,
+                    amount: t.amount,
+                    description: t.description,
+                    sender: t.sender,
+                    recipient: t.recipient,
+                    date: t.date
+                })))
+                
                 setBalance(balanceData.balance)
-
-                const transactionsData = await getRecentTransactions()
                 setTransactions(transactionsData)
             } catch (error) {
                 console.error("Error fetching data:", error)
+                setError(error instanceof Error ? error.message : "Error al cargar los datos")
             } finally {
                 setIsLoading(false)
             }
         }
 
-        fetchData().then()
+        fetchData()
     }, [router])
 
     if (isLoading) {
@@ -149,6 +222,12 @@ export default function Dashboard() {
                         </Button>
                     </div>
 
+                    {error && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+                            {error}
+                        </div>
+                    )}
+
                     <TabsContent value="recent" className="mt-4">
                         <Card>
                             <CardHeader>
@@ -158,36 +237,60 @@ export default function Dashboard() {
                             <CardContent>
                                 {transactions.length > 0 ? (
                                     <div className="space-y-4">
-                                        {transactions.map((transaction) => (
-                                            <div key={transaction.id} className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div
-                                                        className={`p-2 rounded-full ${transaction.type === "income" ? "bg-green-100" : "bg-red-100"}`}
-                                                    >
-                                                        {transaction.type === "income" ? (
-                                                            <ArrowDownIcon className="h-5 w-5 text-green-600"/>
-                                                        ) : (
-                                                            <ArrowUpIcon className="h-5 w-5 text-red-600"/>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium">{transaction.description}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {new Date(transaction.date).toLocaleDateString()}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    className={`font-medium ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}
+                                        {transactions.map((transaction, index) => {
+                                            console.log('Rendering transaction:', {
+                                                id: transaction.id,
+                                                type: transaction.type,
+                                                sender: transaction.sender,
+                                                recipient: transaction.recipient,
+                                                description: transaction.description
+                                            })
+                                            
+                                            const style = getTransactionStyle(transaction.type)
+                                            const description = getTransactionDescription(transaction)
+                                            return (
+                                                <div 
+                                                    key={getTransactionKey(transaction, index)} 
+                                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                                                 >
-                                                    {transaction.type === "income" ? "+" : "-"}
-                                                    {formatCurrency(transaction.amount)}
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`p-2 rounded-full ${style.bgColor}`}>
+                                                            {style.icon}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <p className="font-medium">{description}</p>
+                                                            <div className="flex flex-col sm:flex-row sm:gap-2 text-sm text-muted-foreground">
+                                                                <span>{formatDate(transaction.date)}</span>
+                                                                {transaction.recipient && (
+                                                                    <>
+                                                                        <span className="hidden sm:inline">•</span>
+                                                                        <span className="text-sm">
+                                                                            {TEXT.transactions.details.to}: {transaction.recipient}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                {transaction.sender && (
+                                                                    <>
+                                                                        <span className="hidden sm:inline">•</span>
+                                                                        <span className="text-sm">
+                                                                            {TEXT.transactions.details.from}: {transaction.sender}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`font-medium ${style.textColor}`}>
+                                                        {style.sign}{formatCurrency(transaction.amount)}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 ) : (
-                                    <p className="text-center py-4 text-muted-foreground">{TEXT.dashboard.noTransactions}</p>
+                                    <div className="text-center py-8">
+                                        <p className="text-muted-foreground">{TEXT.dashboard.noTransactions}</p>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -196,34 +299,52 @@ export default function Dashboard() {
                     <TabsContent value="income" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>{TEXT.dashboard.tabs.income}</CardTitle>
-                                <CardDescription>{TEXT.transactions.filterOptions.income}</CardDescription>
+                                <CardTitle>Ingresos</CardTitle>
+                                <CardDescription>Historial de ingresos a tu billetera</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {transactions.filter((t) => t.type === "income").length > 0 ? (
+                                {transactions.filter(t => t.type.toUpperCase() === 'INCOME').length > 0 ? (
                                     <div className="space-y-4">
                                         {transactions
-                                            .filter((t) => t.type === "income")
-                                            .map((transaction) => (
-                                                <div key={transaction.id} className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="p-2 rounded-full bg-green-100">
-                                                            <ArrowDownIcon className="h-5 w-5 text-green-600"/>
+                                            .filter(t => t.type.toUpperCase() === 'INCOME')
+                                            .map((transaction, index) => {
+                                                const style = getTransactionStyle(transaction.type)
+                                                const description = getTransactionDescription(transaction)
+                                                return (
+                                                    <div 
+                                                        key={getTransactionKey(transaction, index)} 
+                                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`p-2 rounded-full ${style.bgColor}`}>
+                                                                {style.icon}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <p className="font-medium">{description}</p>
+                                                                <div className="flex flex-col sm:flex-row sm:gap-2 text-sm text-muted-foreground">
+                                                                    <span>{formatDate(transaction.date)}</span>
+                                                                    {transaction.sender && (
+                                                                        <>
+                                                                            <span className="hidden sm:inline">•</span>
+                                                                            <span className="text-sm">
+                                                                                {TEXT.transactions.details.from}: {transaction.sender}
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-medium">{transaction.description}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {new Date(transaction.date).toLocaleDateString()}
-                                                            </p>
+                                                        <div className={`font-medium ${style.textColor}`}>
+                                                            {style.sign}{formatCurrency(transaction.amount)}
                                                         </div>
                                                     </div>
-                                                    <div
-                                                        className="font-medium text-green-600">+{formatCurrency(transaction.amount)}</div>
-                                                </div>
-                                            ))}
+                                                )
+                                            })}
                                     </div>
                                 ) : (
-                                    <p className="text-center py-4 text-muted-foreground">{TEXT.dashboard.noIncome}</p>
+                                    <div className="text-center py-8">
+                                        <p className="text-muted-foreground">{TEXT.dashboard.noIncome}</p>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -232,34 +353,52 @@ export default function Dashboard() {
                     <TabsContent value="expenses" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>{TEXT.dashboard.tabs.expenses}</CardTitle>
-                                <CardDescription>{TEXT.transactions.filterOptions.expense}</CardDescription>
+                                <CardTitle>Gastos</CardTitle>
+                                <CardDescription>Historial de gastos de tu billetera</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {transactions.filter((t) => t.type === "expense").length > 0 ? (
+                                {transactions.filter(t => t.type.toUpperCase() === 'OUTCOME').length > 0 ? (
                                     <div className="space-y-4">
                                         {transactions
-                                            .filter((t) => t.type === "expense")
-                                            .map((transaction) => (
-                                                <div key={transaction.id} className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="p-2 rounded-full bg-red-100">
-                                                            <ArrowUpIcon className="h-5 w-5 text-red-600"/>
+                                            .filter(t => t.type.toUpperCase() === 'OUTCOME')
+                                            .map((transaction, index) => {
+                                                const style = getTransactionStyle(transaction.type)
+                                                const description = getTransactionDescription(transaction)
+                                                return (
+                                                    <div 
+                                                        key={getTransactionKey(transaction, index)} 
+                                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`p-2 rounded-full ${style.bgColor}`}>
+                                                                {style.icon}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <p className="font-medium">{description}</p>
+                                                                <div className="flex flex-col sm:flex-row sm:gap-2 text-sm text-muted-foreground">
+                                                                    <span>{formatDate(transaction.date)}</span>
+                                                                    {transaction.recipient && (
+                                                                        <>
+                                                                            <span className="hidden sm:inline">•</span>
+                                                                            <span className="text-sm">
+                                                                                {TEXT.transactions.details.to}: {transaction.recipient}
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="font-medium">{transaction.description}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {new Date(transaction.date).toLocaleDateString()}
-                                                            </p>
+                                                        <div className={`font-medium ${style.textColor}`}>
+                                                            {style.sign}{formatCurrency(transaction.amount)}
                                                         </div>
                                                     </div>
-                                                    <div
-                                                        className="font-medium text-red-600">-{formatCurrency(transaction.amount)}</div>
-                                                </div>
-                                            ))}
+                                                )
+                                            })}
                                     </div>
                                 ) : (
-                                    <p className="text-center py-4 text-muted-foreground">{TEXT.dashboard.noExpenses}</p>
+                                    <div className="text-center py-8">
+                                        <p className="text-muted-foreground">{TEXT.dashboard.noExpenses}</p>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

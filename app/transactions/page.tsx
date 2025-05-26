@@ -8,9 +8,60 @@ import {Input} from "@/components/ui/input"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {ArrowDownIcon, ArrowUpIcon, Search} from "lucide-react"
 import {getAllTransactions} from "@/lib/api"
-import {formatCurrency} from "@/lib/utils"
+import {formatCurrency, formatDate} from "@/lib/utils"
 import type {Transaction} from "@/types/wallet"
 import {TEXT, URLS} from "@/lib/constants"
+
+const getTransactionStyle = (type: string) => {
+    switch (type.toUpperCase()) {
+        case 'INCOME':
+            return {
+                bgColor: 'bg-green-100',
+                textColor: 'text-green-600',
+                icon: <ArrowDownIcon className="h-5 w-5 text-green-600"/>,
+                sign: '+'
+            }
+        case 'OUTCOME':
+            return {
+                bgColor: 'bg-red-100',
+                textColor: 'text-red-600',
+                icon: <ArrowUpIcon className="h-5 w-5 text-red-600"/>,
+                sign: '-'
+            }
+        default:
+            return {
+                bgColor: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                icon: <ArrowUpIcon className="h-5 w-5 text-blue-600"/>,
+                sign: '-'
+            }
+    }
+}
+
+const getTransactionDescription = (transaction: Transaction) => {
+    const amount = formatCurrency(transaction.amount)
+    
+    // Si hay una descripción personalizada, usarla
+    if (transaction.description) {
+        return transaction.description
+    }
+    
+    // Determinar la descripción basada en el tipo de transacción
+    switch (transaction.type.toUpperCase()) {
+        case 'INCOME':
+            if (transaction.sender) {
+                return `Ingreso de ${amount} de ${transaction.sender}`
+            }
+            return `Ingreso de ${amount}`
+        case 'OUTCOME':
+            if (transaction.recipient) {
+                return `Gasto de ${amount} a ${transaction.recipient}`
+            }
+            return `Gasto de ${amount}`
+        default:
+            return `${transaction.type} de ${amount}`
+    }
+}
 
 export default function Transactions() {
     const router = useRouter()
@@ -21,9 +72,9 @@ export default function Transactions() {
     const [searchQuery, setSearchQuery] = useState("")
 
     useEffect(() => {
-        // Check if user is logged in
-        const token = localStorage.getItem("token")
-        if (!token) {
+        // Check if user is logged in from cookies
+        const userCookie = document.cookie.split('; ').find(row => row.startsWith('user='))
+        if (!userCookie) {
             router.push(URLS.login)
             return
         }
@@ -31,6 +82,17 @@ export default function Transactions() {
         const fetchData = async () => {
             try {
                 const transactionsData = await getAllTransactions()
+                console.log('Raw transactions data received:', transactionsData.map(t => ({
+                    id: t.id,
+                    type: t.type,
+                    amount: t.amount,
+                    description: t.description,
+                    sender: t.sender,
+                    recipient: t.recipient,
+                    date: t.date,
+                    relatedWalletId: t.relatedWalletId,
+                    relatedBankName: t.relatedBankName
+                })))
                 setTransactions(transactionsData)
                 setFilteredTransactions(transactionsData)
             } catch (error) {
@@ -48,20 +110,55 @@ export default function Transactions() {
 
         // Apply type filter
         if (filter !== "all") {
-            result = result.filter((t) => t.type === filter)
+            result = result.filter((t) => {
+                const type = t.type.toUpperCase()
+                console.log('Filtering transaction:', {
+                    id: t.id,
+                    type: t.type,
+                    upperType: type,
+                    filter: filter,
+                    matches: type === filter.toUpperCase()
+                })
+                switch (filter) {
+                    case "income":
+                        return type === "INCOME"
+                    case "outcome":
+                        return type === "OUTCOME"
+                    default:
+                        return true
+                }
+            })
         }
 
         // Apply search filter
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
             result = result.filter(
-                (t) =>
-                    t.description.toLowerCase().includes(query) ||
-                    t.recipient?.toLowerCase().includes(query) ||
-                    t.sender?.toLowerCase().includes(query),
+                (t) => {
+                    const description = t.description || getTransactionDescription(t)
+                    const matches = description.toLowerCase().includes(query) ||
+                        t.recipient?.toLowerCase().includes(query) ||
+                        t.sender?.toLowerCase().includes(query)
+                    console.log('Searching transaction:', {
+                        id: t.id,
+                        description,
+                        recipient: t.recipient,
+                        sender: t.sender,
+                        query,
+                        matches
+                    })
+                    return matches
+                }
             )
         }
 
+        console.log('Filtered transactions:', result.map(t => ({
+            id: t.id,
+            type: t.type,
+            description: t.description,
+            sender: t.sender,
+            recipient: t.recipient
+        })))
         setFilteredTransactions(result)
     }, [filter, searchQuery, transactions])
 
@@ -102,15 +199,14 @@ export default function Transactions() {
                     <SelectContent>
                         <SelectItem value="all">{TEXT.transactions.filterOptions.all}</SelectItem>
                         <SelectItem value="income">{TEXT.transactions.filterOptions.income}</SelectItem>
-                        <SelectItem value="expense">{TEXT.transactions.filterOptions.expense}</SelectItem>
-                        <SelectItem value="transfer">{TEXT.transactions.filterOptions.transfer}</SelectItem>
+                        <SelectItem value="outcome">{TEXT.transactions.filterOptions.expense}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
-            <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <Card>
                 <CardHeader>
-                    <CardTitle>Transacciones</CardTitle>
+                    <CardTitle>{TEXT.transactions.title}</CardTitle>
                     <CardDescription>
                         {filteredTransactions.length} {TEXT.transactions.transactionsFound}
                     </CardDescription>
@@ -118,59 +214,56 @@ export default function Transactions() {
                 <CardContent>
                     {filteredTransactions.length > 0 ? (
                         <div className="space-y-4">
-                            {filteredTransactions.map((transaction) => (
-                                <div key={transaction.id}
-                                     className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div className="flex items-center gap-4">
-                                        <div
-                                            className={`p-2 rounded-full ${
-                                                transaction.type === "income"
-                                                    ? "bg-green-100"
-                                                    : transaction.type === "expense"
-                                                        ? "bg-red-100"
-                                                        : "bg-blue-100"
-                                            }`}
-                                        >
-                                            {transaction.type === "income" ? (
-                                                <ArrowDownIcon className="h-5 w-5 text-green-600"/>
-                                            ) : (
-                                                <ArrowUpIcon className="h-5 w-5 text-red-600"/>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <p className="font-medium">{transaction.description}</p>
-                                            <div
-                                                className="flex flex-col sm:flex-row sm:gap-2 text-sm text-muted-foreground">
-                                                <span>{new Date(transaction.date).toLocaleDateString()}</span>
-                                                {transaction.recipient && <span className="hidden sm:inline">•</span>}
-                                                {transaction.recipient && (
-                                                    <span>
-                            {TEXT.transactions.details.to}: {transaction.recipient}
-                          </span>
-                                                )}
-                                                {transaction.sender && <span className="hidden sm:inline">•</span>}
-                                                {transaction.sender && (
-                                                    <span>
-                            {TEXT.transactions.details.from}: {transaction.sender}
-                          </span>
-                                                )}
+                            {filteredTransactions.map((transaction) => {
+                                console.log('Rendering transaction:', {
+                                    id: transaction.id,
+                                    type: transaction.type,
+                                    description: transaction.description,
+                                    sender: transaction.sender,
+                                    recipient: transaction.recipient,
+                                    amount: transaction.amount
+                                })
+                                
+                                const style = getTransactionStyle(transaction.type)
+                                const description = getTransactionDescription(transaction)
+                                return (
+                                    <div 
+                                        key={`${transaction.id}-${transaction.date}`}
+                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-2 rounded-full ${style.bgColor}`}>
+                                                {style.icon}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <p className="font-medium">{description}</p>
+                                                <div className="flex flex-col sm:flex-row sm:gap-2 text-sm text-muted-foreground">
+                                                    <span>{formatDate(transaction.date)}</span>
+                                                    {transaction.recipient && (
+                                                        <>
+                                                            <span className="hidden sm:inline">•</span>
+                                                            <span className="text-sm">
+                                                                {TEXT.transactions.details.to}: {transaction.recipient}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                    {transaction.sender && (
+                                                        <>
+                                                            <span className="hidden sm:inline">•</span>
+                                                            <span className="text-sm">
+                                                                {TEXT.transactions.details.from}: {transaction.sender}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className={`font-medium ${style.textColor}`}>
+                                            {style.sign}{formatCurrency(transaction.amount)}
+                                        </div>
                                     </div>
-                                    <div
-                                        className={`font-medium ${
-                                            transaction.type === "income"
-                                                ? "text-green-600"
-                                                : transaction.type === "expense"
-                                                    ? "text-red-600"
-                                                    : "text-blue-600"
-                                        }`}
-                                    >
-                                        {transaction.type === "income" ? "+" : "-"}
-                                        {formatCurrency(transaction.amount)}
-                                    </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-8">

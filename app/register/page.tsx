@@ -107,7 +107,7 @@ export default function Register() {
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full" disabled={isLoading} data-testid="register-submit">
                             {isLoading ? TEXT.auth.register.buttonLoading : TEXT.auth.register.button}
                         </Button>
                         <div className="text-center text-sm">

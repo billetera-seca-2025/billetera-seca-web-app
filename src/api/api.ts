@@ -5,7 +5,6 @@ export interface InstantDebitRequest {
     receiverEmail: string;
     bankName: string;
     amount: number;
-    walletId?: string;
 }
 
 export class Api {
@@ -20,15 +19,9 @@ export class Api {
         return this.baseUrl
     }
 
-    async getBalance(email: string, walletId?: string): Promise<number> {
+    async getBalance(email: string): Promise<number> {
         try {
-            const url = new URL(`${this.baseUrl}/wallet/balance`);
-            url.searchParams.append('email', email);
-            if (walletId) {
-                url.searchParams.append('walletId', walletId);
-            }
-            
-            const response = await fetch(url.toString());
+            const response = await fetch(`${this.baseUrl}/wallet/balance?email=${encodeURIComponent(email)}`);
             if (!response.ok) {
                 throw new Error(`Error getting balance: ${response.statusText}`);
             }
@@ -39,32 +32,17 @@ export class Api {
         }
     }
 
-    async transfer(
-        senderEmail: string, 
-        receiverEmail: string, 
-        amount: number,
-        senderWalletId?: string,
-        receiverWalletId?: string
-    ): Promise<string> {
+    async transfer(senderEmail: string, receiverEmail: string, amount: number): Promise<string> {
         try {
-            const url = new URL(`${this.baseUrl}/wallet/transfer`);
-            url.searchParams.append('senderEmail', senderEmail);
-            url.searchParams.append('receiverEmail', receiverEmail);
-            url.searchParams.append('amount', amount.toString());
-            if (senderWalletId) {
-                url.searchParams.append('senderWalletId', senderWalletId);
-            }
-            if (receiverWalletId) {
-                url.searchParams.append('receiverWalletId', receiverWalletId);
-            }
-
-            const response = await fetch(url.toString(), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
+            const response = await fetch(
+                `${this.baseUrl}/wallet/transfer?senderEmail=${encodeURIComponent(senderEmail)}&receiverEmail=${encodeURIComponent(receiverEmail)}&amount=${amount}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
             if (!response.ok) {
                 throw new Error(`Error making transfer: ${response.statusText}`);
             }
@@ -104,38 +82,19 @@ export class Api {
 
     async getUserTransactions(email: string): Promise<Transaction[]> {
         try {
-            const response = await fetch(`${this.baseUrl}/transactions/user?email=${encodeURIComponent(email)}`);
+            const response = await fetch(`${this.baseUrl}/transactions?email=${encodeURIComponent(email)}`);
             
             if (!response.ok) {
                 const errorData = await response.json();
                 if (errorData && typeof errorData === 'object' && 'message' in errorData) {
                     throw new Error(errorData.message);
                 }
-                throw new Error(`Error getting user transactions: ${response.statusText}`);
+                throw new Error(`Error getting transactions: ${response.statusText}`);
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error getting user transactions:', error);
-            throw error;
-        }
-    }
-
-    async getWalletTransactions(walletId: string): Promise<Transaction[]> {
-        try {
-            const response = await fetch(`${this.baseUrl}/transactions/wallet?walletId=${encodeURIComponent(walletId)}`);
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                if (errorData && typeof errorData === 'object' && 'message' in errorData) {
-                    throw new Error(errorData.message);
-                }
-                throw new Error(`Error getting wallet transactions: ${response.statusText}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error getting wallet transactions:', error);
+            console.error('Error getting transactions:', error);
             throw error;
         }
     }

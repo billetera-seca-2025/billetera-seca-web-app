@@ -33,5 +33,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/tu-org/tu-frontend:latest
-            ghcr.io/tu-org/tu-frontend:${{ github.sha }}
+            ghcr.io/tu-org/billetera-seca-web-app:latest
+            ghcr.io/tu-org/billetera-seca-web-app:${{ github.sha }}

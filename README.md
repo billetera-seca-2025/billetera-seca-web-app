@@ -1,4 +1,4 @@
-# 🏦 BilleteraSeca
+# 🏦 BilleteraSeca 
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)

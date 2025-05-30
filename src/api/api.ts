@@ -5,6 +5,7 @@ export interface InstantDebitRequest {
     receiverEmail: string;
     bankName: string;
     amount: number;
+    cbu: string;
 }
 
 export class Api {

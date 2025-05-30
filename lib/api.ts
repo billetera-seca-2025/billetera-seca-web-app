@@ -334,10 +334,13 @@ export const addMoneyToWallet = async (amount: number, method: string): Promise<
 export const requestDebin = async (bankName: string, accountNumber: string, amount: number): Promise<void> => {
     try {
         const email = getUserEmail()
+        // Extraer solo los números del número de cuenta para usarlo como CBU
+        const cbu = accountNumber.replace(/\D/g, '')
         const response = await api.requestInstantDebit({
             receiverEmail: email,
             bankName: bankName,
-            amount: amount
+            amount: amount,
+            cbu: cbu
         })
     } catch (error: any) {
         // Si el error tiene una respuesta del backend, intentamos obtener el mensaje

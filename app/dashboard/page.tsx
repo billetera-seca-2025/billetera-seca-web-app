@@ -253,7 +253,7 @@ export default function Dashboard() {
                                                     key={getTransactionKey(transaction, index)} 
                                                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                                                 >
-                                                    <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-4">
                                                         <div className={`p-2 rounded-full ${style.bgColor}`}>
                                                             {style.icon}
                                                         </div>
@@ -276,7 +276,7 @@ export default function Dashboard() {
                                                                             {TEXT.transactions.details.from}: {transaction.sender}
                                                                         </span>
                                                                     </>
-                                                                )}
+                                                        )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -315,7 +315,7 @@ export default function Dashboard() {
                                                         key={getTransactionKey(transaction, index)} 
                                                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                                                     >
-                                                        <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-4">
                                                             <div className={`p-2 rounded-full ${style.bgColor}`}>
                                                                 {style.icon}
                                                             </div>
@@ -369,7 +369,7 @@ export default function Dashboard() {
                                                         key={getTransactionKey(transaction, index)} 
                                                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                                                     >
-                                                        <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-4">
                                                             <div className={`p-2 rounded-full ${style.bgColor}`}>
                                                                 {style.icon}
                                                             </div>

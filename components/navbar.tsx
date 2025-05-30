@@ -109,18 +109,18 @@ export function Navbar() {
                         <SheetContent>
                             <div className="flex flex-col gap-4">
                                 <nav className="flex flex-col gap-4">
-                                    {navItems.map((item) => (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            className={cn(
-                                                "text-sm font-medium transition-colors hover:text-primary",
-                                                pathname === item.href ? "text-primary" : "text-muted-foreground",
-                                            )}
-                                        >
-                                            {item.name}
-                                        </Link>
-                                    ))}
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={cn(
+                                            "text-sm font-medium transition-colors hover:text-primary",
+                                            pathname === item.href ? "text-primary" : "text-muted-foreground",
+                                        )}
+                                    >
+                                        {item.name}
+                                    </Link>
+                                ))}
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-medium">Tema</span>
                                         <ThemeToggle />

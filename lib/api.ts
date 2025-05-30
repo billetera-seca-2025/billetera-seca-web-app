@@ -113,175 +113,17 @@ const getUserEmailByWalletId = async (walletId: string): Promise<string> => {
     }
 }
 
-// Agregar tipos para las wallets
-interface Wallet {
-    id: string
-    email: string
-    balance: number
-    createdAt: string
-}
-
-// Agregar funciones para manejar múltiples wallets
-export const getWallets = async (): Promise<Wallet[]> => {
-    try {
-        const email = getUserEmail()
-        const response = await fetch(`${api.getBaseUrl()}/wallet/wallets?email=${encodeURIComponent(email)}`)
-        if (!response.ok) {
-            throw new Error('Failed to fetch wallets')
-        }
-        return await response.json()
-    } catch (error) {
-        console.error('Error getting wallets:', error)
-        throw error
-    }
-}
-
-export const createWallet = async (initialBalance: number = 0): Promise<Wallet> => {
-    try {
-        const email = getUserEmail()
-        const response = await fetch(`${api.getBaseUrl()}/wallet/create?email=${encodeURIComponent(email)}&initialBalance=${initialBalance}`, {
-            method: 'POST'
-        })
-        
-        if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.message || 'Failed to create wallet')
-        }
-        
-        return await response.json()
-    } catch (error) {
-        console.error('Error creating wallet:', error)
-        throw error
-    }
-}
-
-// Modificar getUserBalance para soportar walletId opcional
-export const getUserBalance = async (walletId?: string): Promise<{ balance: number }> => {
+export const getUserBalance = async (): Promise<{ balance: number }> => {
     const email = getUserEmail()
-    const balance = await api.getBalance(email, walletId)
+    const balance = await api.getBalance(email)
     return { balance }
 }
 
-export const getAllTransactions = async (walletId?: string): Promise<Transaction[]> => {
+export const getRecentTransactions = async (): Promise<Transaction[]> => {
     try {
         const email = getUserEmail()
-        let transactions: Transaction[]
-        
-        if (walletId) {
-            // Si se proporciona un walletId, obtener las transacciones de esa wallet específica
-            transactions = await api.getWalletTransactions(walletId)
-            console.log('Raw wallet transactions from backend:', JSON.stringify(transactions, null, 2))
-        } else {
-            // Si no se proporciona walletId, obtener todas las transacciones del usuario
-            transactions = await api.getUserTransactions(email)
-            console.log('Raw user transactions from backend:', JSON.stringify(transactions, null, 2))
-        }
-        
-        const mappedTransactions = await Promise.all(transactions.map(async t => {
-            console.log('Processing transaction:', {
-                id: t.id,
-                type: t.type,
-                amount: t.amount,
-                relatedWalletId: t.relatedWalletId,
-                relatedBankName: t.relatedBankName,
-                createdAt: t.createdAt
-            })
-            
-            // Validar y parsear la fecha
-            const date = t.createdAt ? new Date(t.createdAt) : new Date()
-            if (isNaN(date.getTime())) {
-                console.error('Invalid date for transaction:', t.id, t.createdAt)
-            }
-
-            // Obtener el email relacionado si existe
-            let relatedEmail: string | undefined
-            if (t.relatedWalletId) {
-                try {
-                    const wallet = await getWalletById(t.relatedWalletId)
-                    relatedEmail = wallet.email
-                    console.log('Got related email for wallet:', {
-                        walletId: t.relatedWalletId,
-                        email: relatedEmail
-                    })
-                } catch (error) {
-                    console.error('Error getting related wallet email:', error)
-                }
-            }
-
-            // Determinar el tipo de transacción y asignar sender/recipient
-            const transactionType = t.type.toUpperCase()
-            let sender: string | undefined
-            let recipient: string | undefined
-
-            // Asignar sender/recipient basado en el tipo de transacción
-            if (transactionType === 'INCOME') {
-                // Para INCOME, el sender es la wallet relacionada
-                sender = relatedEmail || t.relatedBankName
-                recipient = undefined
-            } else if (transactionType === 'OUTCOME') {
-                // Para OUTCOME, el recipient es la wallet relacionada
-                sender = undefined
-                recipient = relatedEmail || t.relatedBankName
-            }
-
-            // Generar la descripción basada en el tipo y el monto
-            const amount = formatCurrency(t.amount)
-            let description: string
-            if (transactionType === 'INCOME') {
-                description = sender ? `Ingreso de ${amount} de ${sender}` : `Ingreso de ${amount}`
-            } else if (transactionType === 'OUTCOME') {
-                description = recipient ? `Gasto de ${amount} a ${recipient}` : `Gasto de ${amount}`
-            } else {
-                description = `${transactionType} de ${amount}`
-            }
-
-            console.log('Mapped transaction with sender/recipient:', {
-                id: t.id,
-                type: transactionType,
-                amount: t.amount,
-                description,
-                sender,
-                recipient,
-                relatedEmail,
-                relatedBankName: t.relatedBankName
-            })
-
-            return {
-                id: t.id,
-                userId: email,
-                type: transactionType.toLowerCase() as 'income' | 'expense',
-                amount: t.amount,
-                description,
-                date: date.toISOString(),
-                sender,
-                recipient,
-                relatedWalletId: t.relatedWalletId,
-                relatedBankName: t.relatedBankName
-            }
-        }))
-        
-        console.log('All mapped transactions:', mappedTransactions)
-        return mappedTransactions
-    } catch (error) {
-        console.error('Error getting transactions:', error)
-        throw error
-    }
-}
-
-export const getRecentTransactions = async (walletId?: string): Promise<Transaction[]> => {
-    try {
-        const email = getUserEmail()
-        let transactions: Transaction[]
-        
-        if (walletId) {
-            // Si se proporciona un walletId, obtener las transacciones de esa wallet específica
-            transactions = await api.getWalletTransactions(walletId)
-            console.log('Raw recent wallet transactions from backend:', JSON.stringify(transactions, null, 2))
-        } else {
-            // Si no se proporciona walletId, obtener todas las transacciones del usuario
-            transactions = await api.getUserTransactions(email)
-            console.log('Raw recent user transactions from backend:', JSON.stringify(transactions, null, 2))
-        }
+        const transactions = await api.getUserTransactions(email)
+        console.log('Raw recent transactions from backend:', JSON.stringify(transactions, null, 2))
         
         const mappedTransactions = await Promise.all(transactions.map(async t => {
             console.log('Processing recent transaction:', {
@@ -371,8 +213,8 @@ export const getRecentTransactions = async (walletId?: string): Promise<Transact
 
         // Ordenar por fecha (más recientes primero) y tomar las primeras 5
         const recentTransactions = mappedTransactions
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .slice(0, 5)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5)
         
         console.log('Recent transactions:', recentTransactions)
         return recentTransactions
@@ -382,16 +224,106 @@ export const getRecentTransactions = async (walletId?: string): Promise<Transact
     }
 }
 
-// Modificar transferMoney para soportar walletIds opcionales
-export const transferMoney = async (
-    recipient: string, 
-    amount: number, 
-    description: string,
-    senderWalletId?: string,
-    receiverWalletId?: string
-): Promise<void> => {
+export const getAllTransactions = async (): Promise<Transaction[]> => {
+    try {
+        const email = getUserEmail()
+        const transactions = await api.getUserTransactions(email)
+        console.log('Raw transactions from backend:', JSON.stringify(transactions, null, 2))
+        
+        const mappedTransactions = await Promise.all(transactions.map(async t => {
+            console.log('Processing transaction:', {
+                id: t.id,
+                type: t.type,
+                amount: t.amount,
+                relatedWalletId: t.relatedWalletId,
+                relatedBankName: t.relatedBankName,
+                createdAt: t.createdAt
+            })
+            
+            // Validar y parsear la fecha
+            const date = t.createdAt ? new Date(t.createdAt) : new Date()
+            if (isNaN(date.getTime())) {
+                console.error('Invalid date for transaction:', t.id, t.createdAt)
+            }
+
+            // Obtener el email relacionado si existe
+            let relatedEmail: string | undefined
+            if (t.relatedWalletId) {
+                try {
+                    const wallet = await getWalletById(t.relatedWalletId)
+                    relatedEmail = wallet.email
+                    console.log('Got related email for wallet:', {
+                        walletId: t.relatedWalletId,
+                        email: relatedEmail
+                    })
+                } catch (error) {
+                    console.error('Error getting related wallet email:', error)
+                }
+            }
+
+            // Determinar el tipo de transacción y asignar sender/recipient
+            const transactionType = t.type.toUpperCase()
+            let sender: string | undefined
+            let recipient: string | undefined
+
+            // Asignar sender/recipient basado en el tipo de transacción
+            if (transactionType === 'INCOME') {
+                // Para INCOME, el sender es la wallet relacionada
+                sender = relatedEmail || t.relatedBankName
+                recipient = undefined
+            } else if (transactionType === 'OUTCOME') {
+                // Para OUTCOME, el recipient es la wallet relacionada
+                sender = undefined
+                recipient = relatedEmail || t.relatedBankName
+  }
+
+            // Generar la descripción basada en el tipo y el monto
+            const amount = formatCurrency(t.amount)
+            let description: string
+            if (transactionType === 'INCOME') {
+                description = sender ? `Ingreso de ${amount} de ${sender}` : `Ingreso de ${amount}`
+            } else if (transactionType === 'OUTCOME') {
+                description = recipient ? `Gasto de ${amount} a ${recipient}` : `Gasto de ${amount}`
+            } else {
+                description = `${transactionType} de ${amount}`
+            }
+
+            console.log('Mapped transaction with sender/recipient:', {
+                id: t.id,
+                type: transactionType,
+                amount: t.amount,
+    description,
+                sender,
+                recipient,
+                relatedEmail,
+                relatedBankName: t.relatedBankName
+            })
+
+            return {
+                id: t.id,
+                userId: email,
+                type: transactionType.toLowerCase() as 'income' | 'expense',
+                amount: t.amount,
+                description,
+                date: date.toISOString(),
+                sender,
+                recipient,
+                relatedWalletId: t.relatedWalletId,
+                relatedBankName: t.relatedBankName
+            }
+        }))
+        
+        console.log('All mapped transactions:', mappedTransactions)
+        return mappedTransactions
+    } catch (error) {
+        console.error('Error getting transactions:', error)
+        throw error
+    }
+}
+
+export const transferMoney = async (recipient: string, amount: number, description: string): Promise<void> => {
     const senderEmail = getUserEmail()
-    await api.transfer(senderEmail, recipient, amount, senderWalletId, receiverWalletId)
+    await api.transfer(senderEmail, recipient, amount)
 }
 
 export const addMoneyToWallet = async (amount: number, method: string): Promise<void> => {
@@ -399,20 +331,16 @@ export const addMoneyToWallet = async (amount: number, method: string): Promise<
     console.log(`Adding ${amount} via ${method}`)
 }
 
-// Modificar requestDebin para soportar walletId opcional
-export const requestDebin = async (
-    bankName: string, 
-    accountNumber: string, 
-    amount: number,
-    walletId?: string
-): Promise<void> => {
+export const requestDebin = async (bankName: string, accountNumber: string, amount: number): Promise<void> => {
     try {
         const email = getUserEmail()
+        // Extraer solo los números del número de cuenta para usarlo como CBU
+        const cbu = accountNumber.replace(/\D/g, '')
         const response = await api.requestInstantDebit({
             receiverEmail: email,
             bankName: bankName,
             amount: amount,
-            walletId: walletId
+            cbu: cbu
         })
     } catch (error: any) {
         // Si el error tiene una respuesta del backend, intentamos obtener el mensaje
@@ -430,8 +358,8 @@ export const requestDebin = async (
             } catch (parseError) {
                 console.error('Error parsing error response:', parseError)
             }
-        }
-        
+  }
+
         // Si el error ya tiene un mensaje, lo usamos
         if (error instanceof Error && error.message) {
             throw error

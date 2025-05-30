@@ -33,5 +33,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/tu-org/billetera-seca-web-app:latest
-            ghcr.io/tu-org/billetera-seca-web-app:${{ github.sha }}
+            ghcr.io/billetera-seca-2025/billetera-seca-web-app:latest
+            ghcr.io/billetera-seca-2025/billetera-seca-web-app:${{ github.sha }}

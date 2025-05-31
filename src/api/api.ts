@@ -36,12 +36,17 @@ export class Api {
     async transfer(senderEmail: string, receiverEmail: string, amount: number): Promise<string> {
         try {
             const response = await fetch(
-                `${this.baseUrl}/wallet/transfer?senderEmail=${encodeURIComponent(senderEmail)}&receiverEmail=${encodeURIComponent(receiverEmail)}&amount=${amount}`,
+                `${this.baseUrl}/wallet/transfer`,
                 {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    body: JSON.stringify({
+                        senderEmail,
+                        receiverEmail,
+                        amount
+                    }),
                 }
             );
             if (!response.ok) {

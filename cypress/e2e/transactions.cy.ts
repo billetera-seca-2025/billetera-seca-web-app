@@ -4,9 +4,9 @@ describe('template spec', () => {
     /* ==== Generated with Cypress Studio ==== */
     cy.get('.sm\\:flex-row > .border').click();
     cy.get('#email').clear();
-    cy.get('#email').type('usuario@ejemplo.com');
+    cy.get('#email').type('prueba@mail.com');
     cy.get('#password').clear();
-    cy.get('#password').type('password123');
+    cy.get('#password').type('contraseña');
     cy.get('.flex-col > .inline-flex').click();
     cy.get('main > .container').click();
     cy.get('#radix-«r2»-trigger-expenses').click();

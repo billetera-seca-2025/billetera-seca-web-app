@@ -13,19 +13,26 @@ import type {Transaction} from "@/types/wallet"
 import {TEXT, URLS} from "@/lib/constants"
 
 const getTransactionStyle = (type: string) => {
-    switch (type.toUpperCase()) {
-        case 'INCOME':
+    switch (type) {
+        case 'income':
             return {
                 bgColor: 'bg-green-100',
                 textColor: 'text-green-600',
                 icon: <ArrowDownIcon className="h-5 w-5 text-green-600"/>,
                 sign: '+'
             }
-        case 'OUTCOME':
+        case 'expense':
             return {
                 bgColor: 'bg-red-100',
                 textColor: 'text-red-600',
                 icon: <ArrowUpIcon className="h-5 w-5 text-red-600"/>,
+                sign: '-'
+            }
+        case 'transfer':
+            return {
+                bgColor: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                icon: <ArrowUpIcon className="h-5 w-5 text-blue-600"/>,
                 sign: '-'
             }
         default:
@@ -47,17 +54,22 @@ const getTransactionDescription = (transaction: Transaction) => {
     }
     
     // Determinar la descripción basada en el tipo de transacción
-    switch (transaction.type.toUpperCase()) {
-        case 'INCOME':
+    switch (transaction.type) {
+        case 'income':
             if (transaction.sender) {
                 return `Ingreso de ${amount} de ${transaction.sender}`
             }
             return `Ingreso de ${amount}`
-        case 'OUTCOME':
+        case 'expense':
             if (transaction.recipient) {
                 return `Gasto de ${amount} a ${transaction.recipient}`
             }
             return `Gasto de ${amount}`
+        case 'transfer':
+            if (transaction.recipient) {
+                return `Transferencia de ${amount} a ${transaction.recipient}`
+            }
+            return `Transferencia de ${amount}`
         default:
             return `${transaction.type} de ${amount}`
     }
@@ -111,19 +123,17 @@ export default function Transactions() {
         // Apply type filter
         if (filter !== "all") {
             result = result.filter((t) => {
-                const type = t.type.toUpperCase()
                 console.log('Filtering transaction:', {
                     id: t.id,
                     type: t.type,
-                    upperType: type,
                     filter: filter,
-                    matches: type === filter.toUpperCase()
+                    matches: t.type === filter
                 })
                 switch (filter) {
                     case "income":
-                        return type === "INCOME"
+                        return t.type === "income"
                     case "outcome":
-                        return type === "OUTCOME"
+                        return t.type === "expense"
                     default:
                         return true
                 }

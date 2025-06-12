@@ -14,19 +14,26 @@ import type {Transaction} from "@/types/wallet"
 import {TEXT, URLS} from "@/lib/constants"
 
 const getTransactionStyle = (type: string) => {
-    switch (type.toUpperCase()) {
-        case 'INCOME':
+    switch (type) {
+        case 'income':
             return {
                 bgColor: 'bg-green-100',
                 textColor: 'text-green-600',
                 icon: <ArrowDownIcon className="h-5 w-5 text-green-600"/>,
                 sign: '+'
             }
-        case 'OUTCOME':
+        case 'expense':
             return {
                 bgColor: 'bg-red-100',
                 textColor: 'text-red-600',
                 icon: <ArrowUpIcon className="h-5 w-5 text-red-600"/>,
+                sign: '-'
+            }
+        case 'transfer':
+            return {
+                bgColor: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                icon: <ArrowUpIcon className="h-5 w-5 text-blue-600"/>,
                 sign: '-'
             }
         default:
@@ -54,17 +61,22 @@ const getTransactionDescription = (transaction: Transaction) => {
     }
     
     // Determinar la descripción basada en el tipo de transacción
-    switch (transaction.type.toUpperCase()) {
-        case 'INCOME':
+    switch (transaction.type) {
+        case 'income':
             if (transaction.sender) {
                 return `Ingreso de ${amount} de ${transaction.sender}`
             }
             return `Ingreso de ${amount}`
-        case 'OUTCOME':
+        case 'expense':
             if (transaction.recipient) {
                 return `Gasto de ${amount} a ${transaction.recipient}`
             }
             return `Gasto de ${amount}`
+        case 'transfer':
+            if (transaction.recipient) {
+                return `Transferencia de ${amount} a ${transaction.recipient}`
+            }
+            return `Transferencia de ${amount}`
         default:
             return `${transaction.type} de ${amount}`
     }
@@ -303,10 +315,10 @@ export default function Dashboard() {
                                 <CardDescription>Historial de ingresos a tu billetera</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {transactions.filter(t => t.type.toUpperCase() === 'INCOME').length > 0 ? (
+                                {transactions.filter(t => t.type === 'income').length > 0 ? (
                                     <div className="space-y-4">
                                         {transactions
-                                            .filter(t => t.type.toUpperCase() === 'INCOME')
+                                            .filter(t => t.type === 'income')
                                             .map((transaction, index) => {
                                                 const style = getTransactionStyle(transaction.type)
                                                 const description = getTransactionDescription(transaction)
@@ -357,10 +369,10 @@ export default function Dashboard() {
                                 <CardDescription>Historial de gastos de tu billetera</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {transactions.filter(t => t.type.toUpperCase() === 'OUTCOME').length > 0 ? (
+                                {transactions.filter(t => t.type === 'expense').length > 0 ? (
                                     <div className="space-y-4">
                                         {transactions
-                                            .filter(t => t.type.toUpperCase() === 'OUTCOME')
+                                            .filter(t => t.type === 'expense')
                                             .map((transaction, index) => {
                                                 const style = getTransactionStyle(transaction.type)
                                                 const description = getTransactionDescription(transaction)

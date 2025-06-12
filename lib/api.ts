@@ -159,35 +159,40 @@ export const getRecentTransactions = async (): Promise<Transaction[]> => {
             }
 
             // Determinar sender y recipient basado en el tipo de transacción
-            let transactionType = t.type
+            let transactionType: "income" | "expense" | "transfer"
             let sender: string | undefined
             let recipient: string | undefined
 
-            // Corrección temporal: Si es una transacción OUTCOME pero tiene un relatedWalletId,
-            // probablemente sea un INCOME que fue marcado incorrectamente
-            if (t.type.toUpperCase() === 'OUTCOME' && t.relatedWalletId) {
-                console.log('Correcting transaction type from OUTCOME to INCOME due to relatedWalletId')
-                transactionType = 'income'
-                sender = relatedEmail
-                recipient = undefined
-            }
-            // Para gastos (OUTCOME) normales
-            else if (t.type.toUpperCase() === 'OUTCOME') {
-                transactionType = 'expense'
-                recipient = relatedEmail || t.relatedBankName || undefined
-                sender = undefined
-            }
-            // Para ingresos (INCOME)
-            else if (t.type.toUpperCase() === 'INCOME') {
-                transactionType = 'income'
-                sender = relatedEmail || t.relatedBankName || undefined
-                recipient = undefined
-            }
-            // Para otros tipos, mantener la lógica existente
-            else {
-                transactionType = t.type
-                sender = t.sender
-                recipient = t.recipient
+            // Mapear el tipo de transacción según el tipo original
+            switch (t.type.toLowerCase()) {
+                case 'income':
+                    transactionType = 'income'
+                    sender = relatedEmail || t.relatedBankName || undefined
+                    recipient = undefined
+                    break
+                case 'expense':
+                    transactionType = 'expense'
+                    recipient = relatedEmail || t.relatedBankName || undefined
+                    sender = undefined
+                    break
+                case 'transfer':
+                    transactionType = 'transfer'
+                    sender = t.sender
+                    recipient = t.recipient
+                    break
+                default:
+                    // Si el tipo no es reconocido, intentamos inferirlo basado en el contexto
+                    if (t.relatedWalletId || t.relatedBankName) {
+                        // Si hay un wallet o banco relacionado, probablemente sea un gasto
+                        transactionType = 'expense'
+                        recipient = relatedEmail || t.relatedBankName || undefined
+                        sender = undefined
+                    } else {
+                        // Por defecto, asumimos que es un ingreso
+                        transactionType = 'income'
+                        sender = t.sender
+                        recipient = undefined
+                    }
             }
             
             const mappedTransaction = {
@@ -195,7 +200,7 @@ export const getRecentTransactions = async (): Promise<Transaction[]> => {
                 userId: email,
                 type: transactionType,
                 amount: t.amount,
-                description: t.description || `${transactionType === 'income' ? 'Ingreso' : 'Gasto'} de ${formatCurrency(t.amount)}`,
+                description: t.description || `${transactionType === 'income' ? 'Ingreso' : transactionType === 'expense' ? 'Gasto' : 'Transferencia'} de ${formatCurrency(t.amount)}`,
                 date: date,
                 sender,
                 recipient
@@ -261,29 +266,52 @@ export const getAllTransactions = async (): Promise<Transaction[]> => {
                 }
             }
 
-            // Determinar el tipo de transacción y asignar sender/recipient
-            const transactionType = t.type.toUpperCase()
+            // Determinar sender y recipient basado en el tipo de transacción
+            let transactionType: "income" | "expense" | "transfer"
             let sender: string | undefined
             let recipient: string | undefined
 
-            // Asignar sender/recipient basado en el tipo de transacción
-            if (transactionType === 'INCOME') {
-                // Para INCOME, el sender es la wallet relacionada
-                sender = relatedEmail || t.relatedBankName
-                recipient = undefined
-            } else if (transactionType === 'OUTCOME') {
-                // Para OUTCOME, el recipient es la wallet relacionada
-                sender = undefined
-                recipient = relatedEmail || t.relatedBankName
-  }
-
+            // Mapear el tipo de transacción según el tipo original
+            switch (t.type.toLowerCase()) {
+                case 'income':
+                    transactionType = 'income'
+                    sender = relatedEmail || t.relatedBankName || undefined
+                    recipient = undefined
+                    break
+                case 'expense':
+                    transactionType = 'expense'
+                    recipient = relatedEmail || t.relatedBankName || undefined
+                    sender = undefined
+                    break
+                case 'transfer':
+                    transactionType = 'transfer'
+                    sender = t.sender
+                    recipient = t.recipient
+                    break
+                default:
+                    // Si el tipo no es reconocido, intentamos inferirlo basado en el contexto
+                    if (t.relatedWalletId || t.relatedBankName) {
+                        // Si hay un wallet o banco relacionado, probablemente sea un gasto
+                        transactionType = 'expense'
+                        recipient = relatedEmail || t.relatedBankName || undefined
+                        sender = undefined
+                    } else {
+                        // Por defecto, asumimos que es un ingreso
+                        transactionType = 'income'
+                        sender = t.sender
+                        recipient = undefined
+                    }
+            }
+            
             // Generar la descripción basada en el tipo y el monto
             const amount = formatCurrency(t.amount)
             let description: string
-            if (transactionType === 'INCOME') {
+            if (transactionType === 'income') {
                 description = sender ? `Ingreso de ${amount} de ${sender}` : `Ingreso de ${amount}`
-            } else if (transactionType === 'OUTCOME') {
+            } else if (transactionType === 'expense') {
                 description = recipient ? `Gasto de ${amount} a ${recipient}` : `Gasto de ${amount}`
+            } else if (transactionType === 'transfer') {
+                description = recipient ? `Transferencia de ${amount} a ${recipient}` : `Transferencia de ${amount}`
             } else {
                 description = `${transactionType} de ${amount}`
             }
@@ -302,7 +330,7 @@ export const getAllTransactions = async (): Promise<Transaction[]> => {
             return {
                 id: t.id,
                 userId: email,
-                type: transactionType.toLowerCase() as 'income' | 'expense',
+                type: transactionType,
                 amount: t.amount,
                 description,
                 date: date.toISOString(),
